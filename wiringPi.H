@@ -20,6 +20,10 @@
 #include <sys/wait.h>
 #include <sys/ioctl.h>
 #include <asm/ioctl.h>
+#include <limits>
+
+// For unused attributes
+#define UNU __attribute__((unused))
 
 // #include "softPwm.H"
 // #include "softTone.H"
@@ -32,6 +36,8 @@
 // The others are available for the other devices
 
 #define PI_GPIO_MASK (0xFFFFFFC0)
+
+#define BCM_PASSWORD 0x5A000000
 
 // Handy defines
 
@@ -218,13 +224,38 @@ enum timerOffsets : int
     TIMER_COUNTER = (0x420 >> 2)
 };
 
+enum pwmClockRegisterOffsets : int
+{
+    PWMCLK_CNTL = 40,
+    PWMCLK_DIV = 41,
+    PWM0_MS_MODE = 0x0080,
+    PWM0_USEFIFO = 0x0020,
+    PWM0_REVPOLAR = 0x0010,
+    PWM0_OFFSTATE = 0x0008,
+    PWM0_REPEATFF = 0x0004,
+    PWM0_SERIAL = 0x0002,
+    PWM0_ENABLE = 0x0001,
+    PWM1_MS_MODE = 0x8000,
+    PWM1_USEFIFO = 0x2000,
+    PWM1_REVPOLAR = 0x1000,
+    PWM1_OFFSTATE = 0x0800,
+    PWM1_REPEATFF = 0x0400,
+    PWM1_SERIAL = 0x0200,
+    PWM1_ENABLE = 0x0100
+};
+
+const uint32_t EMPTY_PINTOGPIO = std::numeric_limits<uint32_t>::max();
+
+#define GPIO_CLOCK_SOURCE 1
+
 class wiringPi
 {
 public:
     // Constructor
-    inline wiringPi(const int mode)
+    inline wiringPi(const int debugMode)
     {
-        std::cout << "wiringPi initialised on mode " << mode << std::endl;
+        std::cout << "wiringPi initialised, debug mode = " << debugMode << std::endl;
+        wiringPiDebug = debugMode;
     };
 
     // Destructor
@@ -255,6 +286,26 @@ public:
     int setupSys();
     int setupGpio();
     int setupPhys();
+    void setupCheck(const char *fName);
+    void pinModeAlt(uint32_t pin, const uint32_t mode);
+    void setPadDrive(const uint32_t group, const uint32_t value);
+    int getAlt(uint32_t pin);
+    // void pwmToneWrite(int pin, int freq);
+    void pwmSetMode(const int mode);
+    void pwmSetRange(const uint32_t range);
+    void pwmSetClock(uint32_t divisor);
+    void gpioClockSet(uint32_t pin, const uint32_t freq);
+    int waitForInterrupt(uint32_t pin, int mS);
+
+    // Inline methods
+    inline uint32_t wpiPinToGpio(const uint32_t wpiPin)
+    {
+        return pinToGpio[wpiPin & 63];
+    }
+    inline uint32_t physPinToGpio(const uint32_t physPin)
+    {
+        return physToGpio[physPin & 63];
+    }
 
     // Data
 
@@ -262,13 +313,13 @@ public:
     time_t epochMilli, epochMicro;
 
     // Debugging & Return codes
-    int wiringPiDebug = 1;
+    int wiringPiDebug = 0;
     int wiringPiReturnCodes = 0;
     long int piGpioBase = 0;
     unsigned int piGpioPupOffset = 0;
     int wiringPiMode = WPI_MODE_UNINITIALISED;
-    int *pinToGpio;
-    int *physToGpio;
+    uint32_t *pinToGpio;
+    uint32_t *physToGpio;
     unsigned int usingGpioMem = 0;
 
     long int GPIO_PADS;
@@ -378,48 +429,48 @@ public:
         -1, -1, -1, -1, -1, -1, -1, -1  //
     };
 
-    const int pinToGpioR1[64] = {
-        17, 18, 21, 22, 23, 24, 25, 4,  //
-        0, 1, 8, 7, 10, 9, 11, 14,      //
-        15, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1  //
+    const uint32_t pinToGpioR1[64] = {
+        17, 18, 21, 22, 23, 24, 25, 4,                                                                                                          //
+        0, 1, 8, 7, 10, 9, 11, 14,                                                                                                              //
+        15, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,              //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO  //
     };
 
-    const int pinToGpioR2[64] = {
-        17, 18, 27, 22, 23, 24, 25, 4,  //
-        2, 3, 8, 7, 10, 9, 11, 14,      //
-        15, 28, 29, 30, 31, 5, 6, 13,   //
-        19, 26, 12, 16, 20, 21, 0, 1,   //
-        -1, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1  //
+    const uint32_t pinToGpioR2[64] = {
+        17, 18, 27, 22, 23, 24, 25, 4,                                                                                                          //
+        2, 3, 8, 7, 10, 9, 11, 14,                                                                                                              //
+        15, 28, 29, 30, 31, 5, 6, 13,                                                                                                           //
+        19, 26, 12, 16, 20, 21, 0, 1,                                                                                                           //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO  //
     };
 
-    const int physToGpioR1[64] = {
-        -1, -1, -1, 0, -1, 1, -1, 4,    //
-        14, -1, 15, 17, 18, 21, -1, 22, //
-        23, -1, 24, 10, -1, 9, 25, 11,  //
-        8, -1, 7, -1, -1, -1, -1, -1,   //
-        -1, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1  //
+    const uint32_t physToGpioR1[64] = {
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 0, EMPTY_PINTOGPIO, 1, EMPTY_PINTOGPIO, 4,                                           //
+        14, EMPTY_PINTOGPIO, 15, 17, 18, 21, EMPTY_PINTOGPIO, 22,                                                                               //
+        23, EMPTY_PINTOGPIO, 24, 10, EMPTY_PINTOGPIO, 9, 25, 11,                                                                                //
+        8, EMPTY_PINTOGPIO, 7, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,                             //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO  //
     };
 
-    const int physToGpioR2[64] = {
-        -1, -1, -1, 2, -1, 3, -1, 4,    //
-        14, -1, 15, 17, 18, 27, -1, 22, //
-        23, -1, 24, 10, -1, 9, 25, 11,  //
-        8, -1, 7, 0, 1, 5, -1, 6,       //
-        12, 13, -1, 19, 16, 26, 20, -1, //
-        21, -1, -1, -1, -1, -1, -1, -1, //
-        -1, -1, -1, 28, 29, 30, 31, -1, //
-        -1, -1, -1, -1, -1, -1, -1, -1  //
+    const uint32_t physToGpioR2[64] = {
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 2, EMPTY_PINTOGPIO, 3, EMPTY_PINTOGPIO, 4,                                          //
+        14, EMPTY_PINTOGPIO, 15, 17, 18, 27, EMPTY_PINTOGPIO, 22,                                                                              //
+        23, EMPTY_PINTOGPIO, 24, 10, EMPTY_PINTOGPIO, 9, 25, 11,                                                                               //
+        8, EMPTY_PINTOGPIO, 7, 0, 1, 5, EMPTY_PINTOGPIO, 6,                                                                                    //
+        12, 13, EMPTY_PINTOGPIO, 19, 16, 26, 20, EMPTY_PINTOGPIO,                                                                              //
+        21, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,             //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 28, 29, 30, 31, EMPTY_PINTOGPIO,                                                    //
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO //
     };
 
     const int gpioToGPFSEL[60] = {
@@ -546,15 +597,15 @@ public:
         -1, -1, -1, -1, -1, -1, -1, -1, // 56 -> 63
     };
 
-    const int gpioToClkDiv[64] = {
-        -1, -1, -1, -1, 29, 31, 33, -1, //  0 ->  7
-        -1, -1, -1, -1, -1, -1, -1, -1, //  8 -> 15
-        -1, -1, -1, -1, 29, 31, -1, -1, // 16 -> 23
-        -1, -1, -1, -1, -1, -1, -1, -1, // 24 -> 31
-        29, -1, 29, -1, -1, -1, -1, -1, // 32 -> 39
-        -1, -1, 29, 31, 29, -1, -1, -1, // 40 -> 47
-        -1, -1, -1, -1, -1, -1, -1, -1, // 48 -> 55
-        -1, -1, -1, -1, -1, -1, -1, -1, // 56 -> 63
+    const uint32_t gpioToClkDiv[64] = {
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 29, 31, 33, EMPTY_PINTOGPIO,                                        //  0 ->  7
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //  8 -> 15
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 29, 31, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,                           // 16 -> 23
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, // 24 -> 31
+        29, EMPTY_PINTOGPIO, 29, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,                           // 32 -> 39
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 29, 31, 29, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,                                        // 40 -> 47
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, // 48 -> 55
+        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, // 56 -> 63
     };
 };
 

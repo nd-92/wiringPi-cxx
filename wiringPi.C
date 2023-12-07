@@ -515,13 +515,13 @@ int wiringPi::setup()
 
     /**/ if (gpioLayout() == 1) // A, B, Rev 1, 1.1
     {
-        pinToGpio = const_cast<int *>(pinToGpioR1);
-        physToGpio = const_cast<int *>(physToGpioR1);
+        pinToGpio = const_cast<uint32_t *>(pinToGpioR1);
+        physToGpio = const_cast<uint32_t *>(physToGpioR1);
     }
     else // A2, B2, A+, B+, CM, Pi2, Pi3, Zero, Zero W, Zero 2 W
     {
-        pinToGpio = const_cast<int *>(pinToGpioR2);
-        physToGpio = const_cast<int *>(physToGpioR2);
+        pinToGpio = const_cast<uint32_t *>(pinToGpioR2);
+        physToGpio = const_cast<uint32_t *>(physToGpioR2);
     }
 
     // ...
@@ -776,13 +776,13 @@ int wiringPi::setupSys()
 
     if (gpioLayout() == 1)
     {
-        pinToGpio = const_cast<int *>(pinToGpioR1);
-        physToGpio = const_cast<int *>(physToGpioR1);
+        pinToGpio = const_cast<uint32_t *>(pinToGpioR1);
+        physToGpio = const_cast<uint32_t *>(physToGpioR1);
     }
     else
     {
-        pinToGpio = const_cast<int *>(pinToGpioR2);
-        physToGpio = const_cast<int *>(physToGpioR2);
+        pinToGpio = const_cast<uint32_t *>(pinToGpioR2);
+        physToGpio = const_cast<uint32_t *>(physToGpioR2);
     }
 
     // Open and scan the directory, looking for exported GPIOs, and pre-open
@@ -801,23 +801,262 @@ int wiringPi::setupSys()
     return 0;
 }
 
+void wiringPi::setupCheck(const char *fName)
+{
+    if (!wiringPiSetuped)
+    {
+        fprintf(stderr, "%s: You have not called one of the wiringPiSetup\n"
+                        "  functions, so I'm aborting your program before it crashes anyway.\n",
+                fName);
+        exit(EXIT_FAILURE);
+    }
+}
+
+void wiringPi::pinModeAlt(uint32_t pin, const uint32_t mode)
+{
+    setupCheck("pinModeAlt");
+
+    // Determine if 0 <= pin <= 63
+    // This cast is believed safe
+    if ((pin & static_cast<uint32_t>(PI_GPIO_MASK)) == 0) // On-board pin
+    {
+        /**/ if (wiringPiMode == WPI_MODE_PINS)
+        {
+            pin = pinToGpio[pin];
+        }
+        else if (wiringPiMode == WPI_MODE_PHYS)
+        {
+            pin = physToGpio[pin];
+        }
+        else if (wiringPiMode != WPI_MODE_GPIO)
+        {
+            return;
+        }
+
+        // These casts are safe since all values are <= 0
+        const uint32_t fSel = static_cast<uint32_t>(gpioToGPFSEL[pin]);
+        const uint32_t shift = static_cast<uint32_t>(gpioToShift[pin]);
+        *(gpio + fSel) = (*(gpio + fSel) & ~(7U << shift)) | ((mode & 0x7) << shift);
+    }
+}
+
+void wiringPi::setPadDrive(const uint32_t group, const uint32_t value)
+{
+    if ((wiringPiMode == WPI_MODE_PINS) || (wiringPiMode == WPI_MODE_PHYS) || (wiringPiMode == WPI_MODE_GPIO))
+    {
+        if (group > 2)
+        {
+            return;
+        }
+
+        const uint32_t wrVal = BCM_PASSWORD | 0x18 | (value & 7);
+        *(pads + group + 11) = wrVal;
+
+        if (wiringPiDebug)
+        {
+            printf("setPadDrive: Group: %d, value: %d (%08X)\n", group, value, wrVal);
+            printf("Read : %08X\n", *(pads + group + 11));
+        }
+    }
+}
+
+int wiringPi::getAlt(uint32_t pin)
+{
+    pin &= 63;
+
+    if (wiringPiMode == WPI_MODE_PINS)
+    {
+        pin = pinToGpio[pin];
+    }
+    else if (wiringPiMode == WPI_MODE_PHYS)
+    {
+        pin = physToGpio[pin];
+    }
+    else if (wiringPiMode != WPI_MODE_GPIO)
+    {
+        return 0;
+    }
+
+    return (*(gpio + gpioToGPFSEL[pin]) >> gpioToShift[pin]) & 7;
+}
+
+// void wiringPi::pwmToneWrite(int pin, int freq)
+// {
+//     int range;
+
+//     setupCheck("pwmToneWrite");
+
+//     if (freq == 0)
+//         pwmWrite(pin, 0); // Off
+//     else
+//     {
+//         range = 600000 / freq;
+//         pwmSetRange(range);
+//         pwmWrite(pin, freq / 2);
+//     }
+// }
+
+void wiringPi::pwmSetMode(const int mode)
+{
+    if ((wiringPiMode == WPI_MODE_PINS) || (wiringPiMode == WPI_MODE_PHYS) || (wiringPiMode == WPI_MODE_GPIO))
+    {
+        if (mode == PWM_MODE_MS)
+        {
+            *(pwm + PWM_CONTROL) = PWM0_ENABLE | PWM1_ENABLE | PWM0_MS_MODE | PWM1_MS_MODE;
+        }
+        else
+        {
+            *(pwm + PWM_CONTROL) = PWM0_ENABLE | PWM1_ENABLE;
+        }
+    }
+}
+
+void wiringPi::pwmSetRange(const uint32_t range)
+{
+    if ((wiringPiMode == WPI_MODE_PINS) || (wiringPiMode == WPI_MODE_PHYS) || (wiringPiMode == WPI_MODE_GPIO))
+    {
+        *(pwm + PWM0_RANGE) = range;
+        delayMicroseconds(10);
+        *(pwm + PWM1_RANGE) = range;
+        delayMicroseconds(10);
+    }
+}
+
+void wiringPi::pwmSetClock(uint32_t divisor)
+{
+    if (piGpioBase == GPIO_PERI_BASE_2711)
+    {
+        divisor = 540 * divisor / 192;
+    }
+    divisor &= 4095;
+
+    if ((wiringPiMode == WPI_MODE_PINS) || (wiringPiMode == WPI_MODE_PHYS) || (wiringPiMode == WPI_MODE_GPIO))
+    {
+        if (wiringPiDebug)
+        {
+            printf("Setting to: %d. Current: 0x%08X\n", divisor, *(clk + PWMCLK_DIV));
+        }
+
+        const uint32_t pwm_control = *(pwm + PWM_CONTROL); // preserve PWM_CONTROL
+
+        // We need to stop PWM prior to stopping PWM clock in MS mode otherwise BUSY
+        // stays high.
+
+        *(pwm + PWM_CONTROL) = 0; // Stop PWM
+
+        // Stop PWM clock before changing divisor. The delay after this does need to
+        // this big (95uS occasionally fails, 100uS OK), it's almost as though the BUSY
+        // flag is not working properly in balanced mode. Without the delay when DIV is
+        // adjusted the clock sometimes switches to very slow, once slow further DIV
+        // adjustments do nothing and it's difficult to get out of this mode.
+
+        *(clk + PWMCLK_CNTL) = BCM_PASSWORD | 0x01; // Stop PWM Clock
+        delayMicroseconds(110);                     // prevents clock going sloooow
+
+        while ((*(clk + PWMCLK_CNTL) & 0x80) != 0) // Wait for clock to be !BUSY
+        {
+            delayMicroseconds(1);
+        }
+
+        *(clk + PWMCLK_DIV) = BCM_PASSWORD | (divisor << 12);
+
+        *(clk + PWMCLK_CNTL) = BCM_PASSWORD | 0x11; // Start PWM clock
+        *(pwm + PWM_CONTROL) = pwm_control;         // restore PWM_CONTROL
+
+        if (wiringPiDebug)
+        {
+            printf("Set     to: %d. Now    : 0x%08X\n", divisor, *(clk + PWMCLK_DIV));
+        }
+    }
+}
+
+void wiringPi::gpioClockSet(uint32_t pin, const uint32_t freq)
+{
+
+    pin &= 63;
+
+    /**/ if (wiringPiMode == WPI_MODE_PINS)
+    {
+        pin = pinToGpio[pin];
+    }
+    else if (wiringPiMode == WPI_MODE_PHYS)
+    {
+        pin = physToGpio[pin];
+    }
+    else if (wiringPiMode != WPI_MODE_GPIO)
+    {
+        return;
+    }
+
+    uint32_t divi = 19200000 / freq;
+    const uint32_t divr = 19200000 % freq;
+    const uint32_t divf = static_cast<uint32_t>(static_cast<double>(divr) * 4096.0 / 19200000.0);
+
+    if (divi > 4095)
+    {
+        divi = 4095;
+    }
+
+    *(clk + gpioToClkCon[pin]) = BCM_PASSWORD | GPIO_CLOCK_SOURCE; // Stop GPIO Clock
+    while ((*(clk + gpioToClkCon[pin]) & 0x80) != 0)               // ... and wait
+    {
+        ;
+    }
+
+    *(clk + gpioToClkDiv[pin]) = BCM_PASSWORD | (divi << 12) | divf;      // Set dividers
+    *(clk + gpioToClkCon[pin]) = BCM_PASSWORD | 0x10 | GPIO_CLOCK_SOURCE; // Start Clock
+}
+
+int wiringPi::waitForInterrupt(uint32_t pin, int mS)
+{
+    /**/ if (wiringPiMode == WPI_MODE_PINS)
+    {
+        pin = pinToGpio[pin];
+    }
+    else if (wiringPiMode == WPI_MODE_PHYS)
+    {
+        pin = physToGpio[pin];
+    }
+
+    const int fd = sysFds[pin];
+    if (fd == -1)
+    {
+        return -2;
+    }
+
+    // Setup poll structure
+
+    struct pollfd polls;
+    polls.fd = fd;
+    polls.events = POLLPRI | POLLERR;
+
+    // Wait for it ...
+
+    const int x = poll(&polls, 1, mS);
+
+    // If no error, do a dummy read to clear the interrupt
+    //	A one character read appars to be enough.
+
+    if (x > 0)
+    {
+        uint8_t c;
+        static_cast<void>(lseek(fd, 0, SEEK_SET)); // Rewind
+        static_cast<void>(read(fd, &c, 1));        // Read & clear
+    }
+
+    return x;
+}
+
 int main()
 {
-    wiringPi wiringObject(0);
+    wiringPi wiringObject(1);
 
     // const int i = wiringObject.gpioLayout();
 
     const int i = wiringObject.setup();
-
-    // std::cout << "Model = " << wiringObject.piModelNames[wiringObject.model] << std::endl;
-    // std::cout << "Rev = " << wiringObject.piRevisionNames[rev] << std::endl;
-    // std::cout << "Mem = " << wiringObject.piMemorySize[mem] << std::endl;
-    // std::cout << "Maker = " << wiringObject.piMakerNames[maker] << std::endl;
-    // std::cout << "Overvolted = " << overVolted << std::endl;
-
     std::cout << "i = " << i << std::endl;
 
-    wiringObject.delay(1000);
+    wiringObject.pinModeAlt(20, 6);
 
     return 0;
 }
