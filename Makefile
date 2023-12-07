@@ -15,8 +15,9 @@ LIBS = -lm -lpthread -lrt -lcrypt
 
 default:
 	$(CXX) $(CXXFLAGS) wiringPi.C -o test $(LIBS)
+	@ mkdir build
 	@ cp test build/
 
 clean:
 	@ rm test
-	@ rm build/test
+	@ rm -rf build/
