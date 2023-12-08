@@ -2,6 +2,7 @@
 #define __wiringPi_H
 
 #include "wiringPiIncludes.H"
+#include "wiringPiEnums.H"
 
 // For unused attributes
 #define UNU __attribute__((unused))
@@ -20,212 +21,11 @@
 
 #define BCM_PASSWORD 0x5A000000
 
-// Handy defines
-
-// Versions
-enum version : int
-{
-    VERSION_MAJOR = 2,
-    VERSION_MINOR = 70
-};
-
-// PWM
-// Word offsets into the PWM control region
-
-enum pwmOffsets : int
-{
-    PWM_CONTROL = 0,
-    PWM_STATUS = 1,
-    PWM0_RANGE = 4,
-    PWM0_DATA = 5,
-    PWM1_RANGE = 8,
-    PWM1_DATA = 9
-};
-
-// wiringPi modes
-
-enum wpiModes : int
-{
-    WPI_MODE_PINS = 0,
-    WPI_MODE_GPIO = 1,
-    WPI_MODE_GPIO_SYS = 2,
-    WPI_MODE_PHYS = 3,
-    WPI_MODE_PIFACE = 4,
-    WPI_MODE_UNINITIALISED = -1
-};
-
-// Port function select bits
-
-enum fselBits : int
-{
-    FSEL_INPT = 0b000,
-    FSEL_OUTP = 0b001,
-    FSEL_ALT0 = 0b100,
-    FSEL_ALT1 = 0b101,
-    FSEL_ALT2 = 0b110,
-    FSEL_ALT3 = 0b111,
-    FSEL_ALT4 = 0b011,
-    FSEL_ALT5 = 0b010
-};
-
-// Pin modes
-
-enum pinModes : int
-{
-    INPUT = 0,
-    OUTPUT = 1,
-    PWM_OUTPUT = 2,
-    GPIO_CLOCK = 3,
-    SOFT_PWM_OUTPUT = 4,
-    SOFT_TONE_OUTPUT = 5,
-    PWM_TONE_OUTPUT = 6
-};
-
-// Try to eliminate use of preprocessor for bool return vals
-// #define LOW 0
-// #define HIGH 1
-
-// Pull up/down/none
-
-enum pudModes : int
-{
-    PUD_OFF = 0,
-    PUD_DOWN = 1,
-    PUD_UP = 2
-};
-
-// PWM
-
-enum pwmModes : int
-{
-    PWM_MODE_MS = 0,
-    PWM_MODE_BAL = 1,
-};
-
-// Interrupt levels
-
-enum interruptLevels : int
-{
-    INT_EDGE_SETUP = 0,
-    INT_EDGE_FALLING = 1,
-    INT_EDGE_RISING = 2,
-    INT_EDGE_BOTH = 3,
-};
-
-// Pi model types
-
-enum piModels : int
-{
-    PI_MODEL_A = 0,
-    PI_MODEL_B = 1,
-    PI_MODEL_AP = 2,
-    PI_MODEL_BP = 3,
-    PI_MODEL_2 = 4,
-    PI_ALPHA = 5,
-    PI_MODEL_CM = 6,
-    PI_MODEL_07 = 7,
-    PI_MODEL_3B = 8,
-    PI_MODEL_ZERO = 9,
-    PI_MODEL_CM3 = 10,
-    PI_MODEL_ZERO_W = 12,
-    PI_MODEL_3BP = 13,
-    PI_MODEL_3AP = 14,
-    PI_MODEL_CM3P = 16,
-    PI_MODEL_4B = 17,
-    PI_MODEL_ZERO_2W = 18,
-    PI_MODEL_400 = 19,
-    PI_MODEL_CM4 = 20,
-};
-
-// Pi version numbers
-
-enum piVersions : int
-{
-    PI_VERSION_1 = 0,
-    PI_VERSION_1_1 = 1,
-    PI_VERSION_1_2 = 2,
-    PI_VERSION_2 = 3,
-};
-
-// Pi manufacturers
-
-enum piMakers : int
-{
-    PI_MAKER_SONY = 0,
-    PI_MAKER_EGOMAN = 1,
-    PI_MAKER_EMBEST = 2,
-    PI_MAKER_UNKNOWN = 3
-};
-
-// piGpioBase
-// Is this cast safe?
-enum piGpioPeriBase : long int
-{
-    GPIO_PERI_BASE_OLD = 0x20000000,
-    GPIO_PERI_BASE_2835 = 0x3F000000,
-    GPIO_PERI_BASE_2711 = static_cast<long int>(0xFE000000)
-};
-
-enum gpPud : int
-{
-    GPPUD = 37,
-    GPPUPPDN0 = 57,
-    GPPUPPDN1 = 58,
-    GPPUPPDN2 = 59,
-    GPPUPPDN3 = 60
-};
-
-enum sizes : int
-{
-    PAGE_SIZE = 4096,
-    BLOCK_SIZE = 4096
-};
-
 #define ENV_DEBUG "WIRINGPI_DEBUG"
 #define ENV_CODES "WIRINGPI_CODES"
 #define ENV_GPIOMEM "WIRINGPI_GPIOMEM"
 
-enum wpiErrorCodes : int
-{
-    WPI_FATAL = true,
-    WPI_ALMOST = false
-};
-
-// Timer
-enum timerOffsets : int
-{
-    TIMER_LOAD = (0x400 >> 2),
-    TIMER_VALUE = (0x404 >> 2),
-    TIMER_CONTROL = (0x408 >> 2),
-    TIMER_IRQ_CLR = (0x40C >> 2),
-    TIMER_IRQ_RAW = (0x410 >> 2),
-    TIMER_IRQ_MASK = (0x414 >> 2),
-    TIMER_RELOAD = (0x418 >> 2),
-    TIMER_PRE_DIV = (0x41C >> 2),
-    TIMER_COUNTER = (0x420 >> 2)
-};
-
-enum pwmClockRegisterOffsets : int
-{
-    PWMCLK_CNTL = 40,
-    PWMCLK_DIV = 41,
-    PWM0_MS_MODE = 0x0080,
-    PWM0_USEFIFO = 0x0020,
-    PWM0_REVPOLAR = 0x0010,
-    PWM0_OFFSTATE = 0x0008,
-    PWM0_REPEATFF = 0x0004,
-    PWM0_SERIAL = 0x0002,
-    PWM0_ENABLE = 0x0001,
-    PWM1_MS_MODE = 0x8000,
-    PWM1_USEFIFO = 0x2000,
-    PWM1_REVPOLAR = 0x1000,
-    PWM1_OFFSTATE = 0x0800,
-    PWM1_REPEATFF = 0x0400,
-    PWM1_SERIAL = 0x0200,
-    PWM1_ENABLE = 0x0100
-};
-
-const uint32_t EMPTY_PINTOGPIO = std::numeric_limits<uint32_t>::max();
+const uint32_t EMPTY_PIN = std::numeric_limits<uint32_t>::max();
 
 #define GPIO_CLOCK_SOURCE 1
 
@@ -477,47 +277,47 @@ public:
     };
 
     const uint32_t pinToGpioR1[64] = {
-        17, 18, 21, 22, 23, 24, 25, 4,                                                                                                          //
-        0, 1, 8, 7, 10, 9, 11, 14,                                                                                                              //
-        15, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,              //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO  //
+        17, 18, 21, 22, 23, 24, 25, 4,                                                          //
+        0, 1, 8, 7, 10, 9, 11, 14,                                                              //
+        15, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN,        //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN  //
     };
 
     const uint32_t pinToGpioR2[64] = {
-        17, 18, 27, 22, 23, 24, 25, 4,                                                                                                          //
-        2, 3, 8, 7, 10, 9, 11, 14,                                                                                                              //
-        15, 28, 29, 30, 31, 5, 6, 13,                                                                                                           //
-        19, 26, 12, 16, 20, 21, 0, 1,                                                                                                           //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO  //
+        17, 18, 27, 22, 23, 24, 25, 4,                                                          //
+        2, 3, 8, 7, 10, 9, 11, 14,                                                              //
+        15, 28, 29, 30, 31, 5, 6, 13,                                                           //
+        19, 26, 12, 16, 20, 21, 0, 1,                                                           //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN  //
     };
 
     const uint32_t physToGpioR1[64] = {
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 0, EMPTY_PINTOGPIO, 1, EMPTY_PINTOGPIO, 4,                                           //
-        14, EMPTY_PINTOGPIO, 15, 17, 18, 21, EMPTY_PINTOGPIO, 22,                                                                               //
-        23, EMPTY_PINTOGPIO, 24, 10, EMPTY_PINTOGPIO, 9, 25, 11,                                                                                //
-        8, EMPTY_PINTOGPIO, 7, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,                             //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO  //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, 0, EMPTY_PIN, 1, EMPTY_PIN, 4,                         //
+        14, EMPTY_PIN, 15, 17, 18, 21, EMPTY_PIN, 22,                                           //
+        23, EMPTY_PIN, 24, 10, EMPTY_PIN, 9, 25, 11,                                            //
+        8, EMPTY_PIN, 7, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN,                 //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN  //
     };
 
     const uint32_t physToGpioR2[64] = {
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 2, EMPTY_PINTOGPIO, 3, EMPTY_PINTOGPIO, 4,                                          //
-        14, EMPTY_PINTOGPIO, 15, 17, 18, 27, EMPTY_PINTOGPIO, 22,                                                                              //
-        23, EMPTY_PINTOGPIO, 24, 10, EMPTY_PINTOGPIO, 9, 25, 11,                                                                               //
-        8, EMPTY_PINTOGPIO, 7, 0, 1, 5, EMPTY_PINTOGPIO, 6,                                                                                    //
-        12, 13, EMPTY_PINTOGPIO, 19, 16, 26, 20, EMPTY_PINTOGPIO,                                                                              //
-        21, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,             //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 28, 29, 30, 31, EMPTY_PINTOGPIO,                                                    //
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, 2, EMPTY_PIN, 3, EMPTY_PIN, 4,                        //
+        14, EMPTY_PIN, 15, 17, 18, 27, EMPTY_PIN, 22,                                          //
+        23, EMPTY_PIN, 24, 10, EMPTY_PIN, 9, 25, 11,                                           //
+        8, EMPTY_PIN, 7, 0, 1, 5, EMPTY_PIN, 6,                                                //
+        12, 13, EMPTY_PIN, 19, 16, 26, 20, EMPTY_PIN,                                          //
+        21, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN,       //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, 28, 29, 30, 31, EMPTY_PIN,                            //
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN //
     };
 
     const uint32_t gpioToGPFSEL[60] = {
@@ -645,14 +445,14 @@ public:
     };
 
     const uint32_t gpioToClkDiv[64] = {
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 29, 31, 33, EMPTY_PINTOGPIO,                                        //  0 ->  7
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, //  8 -> 15
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 29, 31, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,                           // 16 -> 23
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, // 24 -> 31
-        29, EMPTY_PINTOGPIO, 29, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,                           // 32 -> 39
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, 29, 31, 29, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO,                                        // 40 -> 47
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, // 48 -> 55
-        EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, // 56 -> 63
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, 29, 31, 33, EMPTY_PIN,                      //  0 ->  7
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, //  8 -> 15
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, 29, 31, EMPTY_PIN, EMPTY_PIN,               // 16 -> 23
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, // 24 -> 31
+        29, EMPTY_PIN, 29, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN,               // 32 -> 39
+        EMPTY_PIN, EMPTY_PIN, 29, 31, 29, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN,                      // 40 -> 47
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, // 48 -> 55
+        EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, EMPTY_PIN, // 56 -> 63
     };
 };
 
