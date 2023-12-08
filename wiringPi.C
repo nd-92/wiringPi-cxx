@@ -65,7 +65,6 @@ int wiringPi::gpioLayout()
 
     if (wiringPiDebug)
     {
-        // printf("gpioLayout: Hardware: %s\n", line);
         std::cout << "gpioLayout: Hardware: " << line << std::endl;
     }
 
@@ -96,7 +95,6 @@ int wiringPi::gpioLayout()
 
     if (wiringPiDebug)
     {
-        // printf("gpioLayout: Revision string: %s\n", line);
         std::cout << "gpioLayout: Revision string: " << line << std::endl;
     }
 
@@ -141,7 +139,6 @@ int wiringPi::gpioLayout()
 
     if (wiringPiDebug)
     {
-        // printf("gpioLayout: last4Chars are: \"%s\"\n", c);
         std::cout << "gpioLayout: last4Chars are: " << c << std::endl;
     }
 
@@ -156,7 +153,6 @@ int wiringPi::gpioLayout()
 
     if (wiringPiDebug)
     {
-        // printf("gpioLayoutOops: Returning revision: %d\n", gpioLayout);
         std::cout << "gpioLayoutOops: Returning revision: " << gpioLayout << std::endl;
     }
 
@@ -168,7 +164,6 @@ void wiringPi::boardID(int *model, int *rev, int *mem, int *maker, int *warranty
     FILE *cpuFd;
     char line[120];
     char *c;
-    unsigned int revision;
     int bRev, bType, bProc, bMfg, bMem, bWarranty;
 
     // Call this first to make sure all's OK. Don't care about the result.
@@ -187,7 +182,7 @@ void wiringPi::boardID(int *model, int *rev, int *mem, int *maker, int *warranty
         }
     }
 
-    fclose(cpuFd);
+    static_cast<void>(fclose(cpuFd));
 
     if (strncmp(line, "Revision", 8) != 0)
     {
@@ -203,7 +198,7 @@ void wiringPi::boardID(int *model, int *rev, int *mem, int *maker, int *warranty
 
     if (wiringPiDebug)
     {
-        printf("piBoardId: Revision string: %s\n", line);
+        std::cout << "boardID: Revision string: " << line << std::endl;
     }
 
     // Need to work out if it's using the new or old encoding scheme:
@@ -236,7 +231,7 @@ void wiringPi::boardID(int *model, int *rev, int *mem, int *maker, int *warranty
         gpioLayoutOops("Bogus \"Revision\" line (no hex digit at start of revision)");
     }
 
-    revision = (unsigned int)strtol(c, NULL, 16); // Hex number with no leading 0x
+    const unsigned int revision = static_cast<unsigned int>(strtol(c, NULL, 16)); // Hex number with no leading 0x
 
     // Check for new way:
 
@@ -244,7 +239,7 @@ void wiringPi::boardID(int *model, int *rev, int *mem, int *maker, int *warranty
     {
         if (wiringPiDebug)
         {
-            printf("piBoardId: New Way: revision is: %08X\n", revision);
+            std::cout << "boardID: New Way: revision is: " << revision << std::endl;
         }
 
         bRev = (revision & (0x0F << 0)) >> 0;
@@ -262,16 +257,14 @@ void wiringPi::boardID(int *model, int *rev, int *mem, int *maker, int *warranty
 
         if (wiringPiDebug)
         {
-            printf(
-                "piBoardId: rev: %d, type: %d, proc: %d, mfg: %d, mem: %d, warranty: %d\n",
-                bRev, bType, bProc, bMfg, bMem, bWarranty);
+            std::cout << "boardID: rev: " << bRev << ", type: " << bType << ", proc: " << bProc << ", mfg: " << bMfg << ", mem: " << bMem << ", warranty: " << bWarranty << std::endl;
         }
     }
     else // Old way
     {
         if (wiringPiDebug)
         {
-            printf("piBoardId: Old Way: revision is: %s\n", c);
+            std::cout << "boardID: Old way: revision is " << c << std::endl;
         }
 
         if (!isdigit(*c))
@@ -344,7 +337,6 @@ void wiringPi::boardID(int *model, int *rev, int *mem, int *maker, int *warranty
             *rev = PI_VERSION_1_2;
             *mem = 0;
             *maker = PI_MAKER_SONY;
-            ;
         }
         else if (strcmp(c, "0009") == 0)
         {
@@ -470,15 +462,12 @@ void wiringPi::boardID(int *model, int *rev, int *mem, int *maker, int *warranty
 
 int wiringPi::setup()
 {
-    int fd;
-    int model, rev, mem, maker, overVolted;
-
     if (wiringPiSetuped)
     {
         return 0;
     }
 
-    wiringPiSetuped = 1;
+    wiringPiSetuped = true;
 
     if (getenv(ENV_DEBUG) != NULL)
     {
@@ -492,7 +481,6 @@ int wiringPi::setup()
 
     if (wiringPiDebug)
     {
-        // printf("wiringPi: wiringPiSetup called\n");
         std::cout << "wiringPi: wiringPiSetup called" << std::endl;
     }
 
@@ -501,7 +489,7 @@ int wiringPi::setup()
     // on the older 26-pin Pi's) and the GPIO peripheral base address.
     // and if we're running on a compute module, then wiringPi pin numbers
     // don't really mean anything, so force native BCM mode anyway.
-
+    int model, rev, mem, maker, overVolted;
     boardID(&model, &rev, &mem, &maker, &overVolted);
 
     if ((model == PI_MODEL_CM) || (model == PI_MODEL_CM3) || (model == PI_MODEL_CM3P))
@@ -513,7 +501,7 @@ int wiringPi::setup()
         wiringPiMode = WPI_MODE_PINS;
     }
 
-    /**/ if (gpioLayout() == 1) // A, B, Rev 1, 1.1
+    if (gpioLayout() == 1) // A, B, Rev 1, 1.1
     {
         pinToGpio = const_cast<uint32_t *>(pinToGpioR1);
         physToGpio = const_cast<uint32_t *>(physToGpioR1);
@@ -523,8 +511,6 @@ int wiringPi::setup()
         pinToGpio = const_cast<uint32_t *>(pinToGpioR2);
         physToGpio = const_cast<uint32_t *>(physToGpioR2);
     }
-
-    // ...
 
     switch (model)
     {
@@ -555,7 +541,7 @@ int wiringPi::setup()
     // Device strategy: December 2016:
     // Try /dev/mem. If that fails, then
     // try /dev/gpiomem. If that fails then game over.
-
+    int fd;
     if ((fd = open("/dev/mem", O_RDWR | O_SYNC | O_CLOEXEC)) < 0)
     {
         if ((fd = open("/dev/gpiomem", O_RDWR | O_SYNC | O_CLOEXEC)) >= 0) // We're using gpiomem
@@ -576,7 +562,6 @@ int wiringPi::setup()
     }
 
     // Set the offsets into the memory interface.
-
     GPIO_PADS = piGpioBase + 0x00100000;
     GPIO_CLOCK_BASE = piGpioBase + 0x00101000;
     GPIO_BASE = piGpioBase + 0x00200000;
@@ -586,55 +571,48 @@ int wiringPi::setup()
     // Map the individual hardware components
 
     //	GPIO:
-
-    gpio = (uint32_t *)mmap(0, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, GPIO_BASE);
+    gpio = static_cast<uint32_t *>(mmap(0, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, GPIO_BASE));
     if (gpio == MAP_FAILED)
     {
         return failure(WPI_ALMOST, "wiringPiSetup: mmap (GPIO) failed: %s\n", strerror(errno));
     }
 
     //	PWM
-
-    pwm = (uint32_t *)mmap(0, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, GPIO_PWM);
+    pwm = static_cast<uint32_t *>(mmap(0, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, GPIO_PWM));
     if (pwm == MAP_FAILED)
     {
         return failure(WPI_ALMOST, "wiringPiSetup: mmap (PWM) failed: %s\n", strerror(errno));
     }
 
     //	Clock control (needed for PWM)
-
-    clk = (uint32_t *)mmap(0, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, GPIO_CLOCK_BASE);
+    clk = static_cast<uint32_t *>(mmap(0, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, GPIO_CLOCK_BASE));
     if (clk == MAP_FAILED)
     {
         return failure(WPI_ALMOST, "wiringPiSetup: mmap (CLOCK) failed: %s\n", strerror(errno));
     }
 
     //	The drive pads
-
-    pads = (uint32_t *)mmap(0, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, GPIO_PADS);
+    pads = static_cast<uint32_t *>(mmap(0, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, GPIO_PADS));
     if (pads == MAP_FAILED)
     {
         return failure(WPI_ALMOST, "wiringPiSetup: mmap (PADS) failed: %s\n", strerror(errno));
     }
 
     //	The system timer
-
-    timer = (uint32_t *)mmap(0, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, GPIO_TIMER);
+    timer = static_cast<uint32_t *>(mmap(0, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, GPIO_TIMER));
     if (timer == MAP_FAILED)
     {
         return failure(WPI_ALMOST, "wiringPiSetup: mmap (TIMER) failed: %s\n", strerror(errno));
     }
 
     // Set the timer to free-running, 1MHz.
-    //	0xF9 is 249, the timer divide is base clock / (divide+1)
-    //	so base clock is 250MHz / 250 = 1MHz.
-
+    // 0xF9 is 249, the timer divide is base clock / (divide + 1)
+    // so base clock is 250MHz / 250 = 1MHz.
     *(timer + TIMER_CONTROL) = 0x0000280;
     *(timer + TIMER_PRE_DIV) = 0x00000F9;
     timerIrqRaw = timer + TIMER_IRQ_RAW;
 
     // Export the base addresses for any external software that might need them
-
     _wiringPiGpio = gpio;
     _wiringPiPwm = pwm;
     _wiringPiClk = clk;
@@ -644,79 +622,6 @@ int wiringPi::setup()
     initialiseEpoch();
 
     return 0;
-}
-
-void wiringPi::initialiseEpoch()
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
-    epochMilli = ts.tv_sec * 1000 + (ts.tv_nsec / 1000000L);
-    epochMicro = ts.tv_sec * 1000000 + (ts.tv_nsec / 1000L);
-}
-
-void wiringPi::delay(const time_t howLong)
-{
-    struct timespec sleeper, dummy;
-
-    sleeper.tv_sec = (howLong / 1000);
-    sleeper.tv_nsec = (howLong % 1000) * 1000000;
-
-    nanosleep(&sleeper, &dummy);
-}
-
-void wiringPi::delayMicroseconds(const time_t howLong)
-{
-    struct timespec sleeper;
-    const time_t uSecs = howLong % 1000000;
-    const time_t wSecs = howLong / 1000000;
-
-    /**/ if (howLong == 0)
-    {
-        return;
-    }
-    else if (howLong < 100)
-    {
-        delayMicrosecondsHard(howLong);
-    }
-    else
-    {
-        sleeper.tv_sec = wSecs;
-        sleeper.tv_nsec = uSecs * 1000L;
-        nanosleep(&sleeper, NULL);
-    }
-}
-
-void wiringPi::delayMicrosecondsHard(const time_t howLong)
-{
-    struct timeval tNow, tLong, tEnd;
-
-    gettimeofday(&tNow, NULL);
-    tLong.tv_sec = howLong / 1000000;
-    tLong.tv_usec = howLong % 1000000;
-    timeradd(&tNow, &tLong, &tEnd);
-
-    while (timercmp(&tNow, &tEnd, <))
-    {
-        gettimeofday(&tNow, NULL);
-    }
-}
-
-time_t wiringPi::millis()
-{
-    struct timespec ts;
-
-    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
-
-    return ((ts.tv_sec * 1000 + (ts.tv_nsec / 1000000)) - epochMilli);
-}
-
-time_t wiringPi::micros()
-{
-    struct timespec ts;
-
-    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
-
-    return ((ts.tv_sec * 1000000 + (ts.tv_nsec / 1000)) - epochMicro);
 }
 
 int wiringPi::setupGpio()
@@ -771,7 +676,7 @@ int wiringPi::setupSys()
 
     if (wiringPiDebug)
     {
-        printf("wiringPi: wiringPiSetupSys called\n");
+        std::cout << "wiringPi: wiringPiSetupSys called" << std::endl;
     }
 
     if (gpioLayout() == 1)
@@ -834,8 +739,8 @@ void wiringPi::pinModeAlt(uint32_t pin, const uint32_t mode)
         }
 
         // These casts are safe since all values are <= 0
-        const uint32_t fSel = static_cast<uint32_t>(gpioToGPFSEL[pin]);
-        const uint32_t shift = static_cast<uint32_t>(gpioToShift[pin]);
+        const uint32_t fSel = gpioToGPFSEL[pin];
+        const uint32_t shift = gpioToShift[pin];
         *(gpio + fSel) = (*(gpio + fSel) & ~(7U << shift)) | ((mode & 0x7) << shift);
     }
 }
@@ -854,6 +759,7 @@ void wiringPi::setPadDrive(const uint32_t group, const uint32_t value)
 
         if (wiringPiDebug)
         {
+            std::cout << "setPadDrive: Group: " << group << ", value: " << value << "(" << wrVal << ")" << std::endl;
             printf("setPadDrive: Group: %d, value: %d (%08X)\n", group, value, wrVal);
             printf("Read : %08X\n", *(pads + group + 11));
         }
@@ -879,22 +785,6 @@ int wiringPi::getAlt(uint32_t pin)
 
     return (*(gpio + gpioToGPFSEL[pin]) >> gpioToShift[pin]) & 7;
 }
-
-// void wiringPi::pwmToneWrite(int pin, int freq)
-// {
-//     int range;
-
-//     setupCheck("pwmToneWrite");
-
-//     if (freq == 0)
-//         pwmWrite(pin, 0); // Off
-//     else
-//     {
-//         range = 600000 / freq;
-//         pwmSetRange(range);
-//         pwmWrite(pin, freq / 2);
-//     }
-// }
 
 void wiringPi::pwmSetMode(const int mode)
 {
@@ -1057,6 +947,11 @@ int main()
     std::cout << "i = " << i << std::endl;
 
     wiringObject.pinModeAlt(20, 6);
+
+    wiringObject.printVersion();
+    std::cout << MAP_FAILED << std::endl;
+    std::cout << static_cast<uint32_t *>(MAP_FAILED) << std::endl;
+    std::cout << static_cast<int>(0xffffffff) << std::endl;
 
     return 0;
 }

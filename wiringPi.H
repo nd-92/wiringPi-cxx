@@ -1,26 +1,7 @@
 #ifndef __wiringPi_H
 #define __wiringPi_H
 
-#include <iostream>
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <poll.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <time.h>
-#include <fcntl.h>
-#include <pthread.h>
-#include <sys/time.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <sys/ioctl.h>
-#include <asm/ioctl.h>
-#include <limits>
+#include "wiringPiIncludes.H"
 
 // For unused attributes
 #define UNU __attribute__((unused))
@@ -253,6 +234,8 @@ class wiringPi
 public:
     // Constructor
     inline wiringPi(const int debugMode)
+        : major(VERSION_MAJOR),
+          minor(VERSION_MINOR)
     {
         std::cout << "wiringPi initialised, debug mode = " << debugMode << std::endl;
         wiringPiDebug = debugMode;
@@ -264,25 +247,12 @@ public:
         std::cout << "wiringPi terminated." << std::endl;
     };
 
-    // Inline methods methods
-    inline void version(int *major, int *minor)
-    {
-        *major = VERSION_MAJOR;
-        *minor = VERSION_MINOR;
-    }
-
     // Non-inline methods
     int failure(int fatal, const char *message, ...);
     void gpioLayoutOops(const char *why);
     int gpioLayout();
     void boardID(int *model, int *rev, int *mem, int *maker, int *warranty);
     int setup();
-    void initialiseEpoch();
-    void delay(const time_t howLong);
-    void delayMicroseconds(const time_t howLong);
-    void delayMicrosecondsHard(const time_t howLong);
-    time_t millis();
-    time_t micros();
     int setupSys();
     int setupGpio();
     int setupPhys();
@@ -306,8 +276,85 @@ public:
     {
         return physToGpio[physPin & 63];
     }
+    inline void printVersion()
+    {
+        std::cout << "wiringPi version " << major << "." << minor << std::endl;
+    }
+    inline void initialiseEpoch()
+    {
+        struct timespec ts;
+
+        clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+
+        epochMilli = ts.tv_sec * 1000 + (ts.tv_nsec / 1000000L);
+        epochMicro = ts.tv_sec * 1000000 + (ts.tv_nsec / 1000L);
+    }
+    inline void delay(const time_t howLong)
+    {
+        struct timespec sleeper, dummy;
+
+        sleeper.tv_sec = (howLong / 1000);
+        sleeper.tv_nsec = (howLong % 1000) * 1000000;
+
+        nanosleep(&sleeper, &dummy);
+    }
+    inline void delayMicroseconds(const time_t howLong)
+    {
+        struct timespec sleeper;
+
+        if (howLong == 0)
+        {
+            return;
+        }
+        else if (howLong < 100)
+        {
+            delayMicrosecondsHard(howLong);
+        }
+        else
+        {
+            sleeper.tv_sec = howLong / 1000000;
+            sleeper.tv_nsec = (howLong % 1000000) * 1000L;
+            nanosleep(&sleeper, NULL);
+        }
+    }
+    inline void delayMicrosecondsHard(const time_t howLong)
+    {
+        struct timeval tNow, tLong, tEnd;
+
+        gettimeofday(&tNow, NULL);
+
+        tLong.tv_sec = howLong / 1000000;
+        tLong.tv_usec = howLong % 1000000;
+
+        timeradd(&tNow, &tLong, &tEnd);
+
+        while (timercmp(&tNow, &tEnd, <))
+        {
+            gettimeofday(&tNow, NULL);
+        }
+    }
+    inline time_t millis()
+    {
+        struct timespec ts;
+
+        clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+
+        return ((ts.tv_sec * 1000 + (ts.tv_nsec / 1000000)) - epochMilli);
+    }
+    inline time_t micros()
+    {
+        struct timespec ts;
+
+        clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+
+        return ((ts.tv_sec * 1000000 + (ts.tv_nsec / 1000)) - epochMicro);
+    }
 
     // Data
+
+    // Version data
+    const int major;
+    const int minor;
 
     // Timers
     time_t epochMilli, epochMicro;
@@ -316,7 +363,7 @@ public:
     int wiringPiDebug = 0;
     int wiringPiReturnCodes = 0;
     long int piGpioBase = 0;
-    unsigned int piGpioPupOffset = 0;
+    int piGpioPupOffset = 0;
     int wiringPiMode = WPI_MODE_UNINITIALISED;
     uint32_t *pinToGpio;
     uint32_t *physToGpio;
@@ -327,7 +374,7 @@ public:
     long int GPIO_BASE;
     long int GPIO_TIMER;
     long int GPIO_PWM;
-    int wiringPiSetuped = false;
+    bool wiringPiSetuped = false;
 
     // Locals to hold pointers to the hardware
     uint32_t *gpio;
@@ -389,16 +436,16 @@ public:
     };
 
     const char *piMakerNames[16] = {
-        "Sony",      //	 0
-        "Egoman",    //	 1
-        "Embest",    //	 2
-        "Unknown",   //	 3
-        "Embest",    //	 4
-        "Unknown05", //	 5
-        "Unknown06", //	 6
-        "Unknown07", //	 7
-        "Unknown08", //	 8
-        "Unknown09", //	 9
+        "Sony",      //	00
+        "Egoman",    //	01
+        "Embest",    //	02
+        "Unknown",   //	03
+        "Embest",    //	04
+        "Unknown05", //	05
+        "Unknown06", //	06
+        "Unknown07", //	07
+        "Unknown08", //	08
+        "Unknown09", //	09
         "Unknown10", //	10
         "Unknown11", //	11
         "Unknown12", //	12
@@ -408,14 +455,14 @@ public:
     };
 
     const int piMemorySize[8] = {
-        256,  //	 0
-        512,  //	 1
-        1024, //	 2
-        2048, //	 3
-        4096, //	 4
-        8192, //	 5
-        0,    //	 6
-        0,    //	 7
+        256,  // 0
+        512,  // 1
+        1024, // 2
+        2048, // 3
+        4096, // 4
+        8192, // 5
+        0,    // 6
+        0,    // 7
     };
 
     int sysFds[64] = {
@@ -473,7 +520,7 @@ public:
         EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO, EMPTY_PINTOGPIO //
     };
 
-    const int gpioToGPFSEL[60] = {
+    const uint32_t gpioToGPFSEL[60] = {
         0, 0, 0, 0, //
         0, 0, 0, 0, //
         0, 0, 1, 1, //
@@ -491,7 +538,7 @@ public:
         5, 5, 5, 5  //
     };
 
-    const int gpioToShift[60] = {
+    const uint32_t gpioToShift[60] = {
         0, 3, 6, 9,     //
         12, 15, 18, 21, //
         24, 27, 0, 3,   //
