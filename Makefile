@@ -21,3 +21,10 @@ default:
 clean:
 	@ rm test
 	@ rm -rf build/
+
+new:
+	@ rm test
+	@ rm -rf build/
+	$(CXX) $(CXXFLAGS) wiringPi.C -o test $(LIBS)
+	@ mkdir build
+	@ cp test build/
